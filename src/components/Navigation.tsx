@@ -27,6 +27,11 @@ const Navigation = () => {
       href: "https://qr61.cn/oohivs/qRp62U6",
       text: "加入交流群",
       icon: <PlayCircle className="w-4 h-4" />
+    },
+    {
+      href: "https://gf.bilibili.com/item/detail/1107198073",
+      text: "获取一键安装脚本",
+      icon: <PlayCircle className="w-4 h-4" />
     }
   ];
 

@@ -7,7 +7,7 @@ export const navigationLinks: NavLink[] = [
     iconType: "video"
   },
   {
-    href: "https://qwenlm.github.io/zh/blog/qwen2.5-coder-family/",
+    href: "https://www.bilibili.com/video/BV1mCkEYyEcy/",
     text: "免费GPU云电脑",
     iconType: "external-link"
   },
@@ -24,6 +24,11 @@ export const navigationLinks: NavLink[] = [
   {
     href: "https://qr61.cn/oohivs/qRp62U6",
     text: "加入Ai交流群",
+    iconType: "external-link"
+  },
+  {
+    href: "https://gf.bilibili.com/item/detail/1107198073",
+    text: "获取一键安装脚本",
     iconType: "external-link"
   }
 ];

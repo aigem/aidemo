@@ -10,7 +10,7 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: 'dist/echominimic_v2',
+    outDir: process.env.VITE_OUT_DIR || 'dist',
     assetsDir: 'assets',
     minify: 'terser',
     sourcemap: false,
