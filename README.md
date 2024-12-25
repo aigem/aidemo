@@ -202,10 +202,35 @@ curl -X POST https://your-site.edgeone.dev/api/apps \
 ### 1. 应用数据结构
 ```typescript
 interface GradioApp {
-  directUrl: string;    // 应用直接访问地址
-  name: string;         // 应用名称
-  description: string;  // 应用描述
-  category?: string;    // 应用类别
+  id: string;               // 应用唯一标识
+  directUrl: string;        // 应用直接访问地址
+  name: string;             // 应用名称
+  description: string;      // 应用描述
+  category: string;         // 应用类别
+  imageUrl?: string;        // 应用预览图
+  isTop?: boolean;          // 是否置顶
+  viewCount: number;        // 浏览数量
+  likeCount: number;        // 点赞数量
+  status: 'active' | 'maintenance' | 'offline';  // 应用状态
+  tags: string[];          // 标签列表
+  createdAt: number;       // 创建时间
+  updatedAt: number;       // 更新时间
+  author?: {               // 作者信息
+    name: string;
+    avatar?: string;
+    contact?: string;
+  };
+  meta?: {                 // 元数据
+    version?: string;      // 版本号
+    framework?: string;    // 使用的框架
+    requirements?: string[]; // 系统要求
+    apiKey?: boolean;      // 是否需要 API Key
+  };
+  stats?: {               // 统计信息
+    avgResponseTime?: number;  // 平均响应时间
+    uptime?: number;          // 运行时间百分比
+    lastChecked?: number;     // 最后检查时间
+  };
 }
 ```
 
@@ -236,23 +261,65 @@ interface GradioApp {
 #### 3.1 数据格式
 ```typescript
 {
-  "apps_data": [
-    {
-      "directUrl": "https://example.com/app1",
-      "name": "应用1",
-      "description": "描述1",
-      "category": "文本生成"
+  // 应用数据
+  "apps_data": {
+    "items": GradioApp[],           // 应用列表
+    "lastUpdated": number,          // 最后更新时间
+    "version": string              // 数据版本
+  },
+  
+  // 统计数据（每小时更新）
+  "apps_stats": {
+    "totalApps": number,           // 应用总数
+    "totalViews": number,          // 总浏览量
+    "totalLikes": number,          // 总点赞数
+    "categoryStats": {             // 分类统计
+      [category: string]: number
+    },
+    "topApps": string[],          // 热门应用ID列表
+    "lastUpdated": number         // 最后更新时间
+  },
+  
+  // 应用状态（每5分钟更新）
+  "apps_status": {
+    [appId: string]: {
+      status: 'active' | 'maintenance' | 'offline',
+      lastChecked: number,
+      responseTime: number
     }
-  ]
+  }
 }
 ```
 
-#### 3.2 性能优化
+#### 3.2 索引结构
+```typescript
+{
+  // 标签索引
+  "apps_tags_index": {
+    [tag: string]: string[]  // 标签 -> 应用ID列表
+  },
+  
+  // 作者索引
+  "apps_author_index": {
+    [authorName: string]: string[]  // 作者 -> 应用ID列表
+  },
+  
+  // 置顶应用索引
+  "apps_top_index": string[],  // 置顶应用ID列表
+  
+  // 分类索引
+  "apps_category_index": {
+    [category: string]: string[]  // 分类 -> 应用ID列表
+  }
+}
+```
+
+#### 3.3 性能优化
 - 使用缓存减少 KV 存储读取次数
 - 批量操作时合并请求
 - 支持并发请求处理
 
-#### 3.3 数据一致性
+#### 3.4 数据一致性
 - 写操作采用原子性更新
 - 支持乐观锁防止并发冲突
 - 定期数据备份
