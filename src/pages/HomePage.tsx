@@ -1,5 +1,4 @@
 import React from 'react';
-import { Monitor, Code2 } from 'lucide-react';
 import { AppCard } from '../components/AppCard';
 import { AppViewer } from '../components/AppViewer';
 import { AppSearch } from '../components/AppSearch';
@@ -7,12 +6,12 @@ import { Pagination } from '../components/Pagination';
 import { AppStats } from '../components/AppStats';
 import { useApps } from '../contexts/AppContext';
 import { useAppFilters } from '../hooks/useAppFilters';
+import type { GradioApp } from '../types/app';
 
 export const HomePage = React.memo(function HomePage() {
   const { state, dispatch } = useApps();
   const { apps, searchQuery, category, page, itemsPerPage } = state;
-  const [selectedApp, setSelectedApp] = React.useState(null);
-  const [viewMode, setViewMode] = React.useState('webcomponent');
+  const [selectedApp, setSelectedApp] = React.useState<GradioApp | null>(null);
 
   const { paginatedApps, totalPages } = useAppFilters(
     apps,
@@ -31,17 +30,14 @@ export const HomePage = React.memo(function HomePage() {
               <h1 className="text-3xl font-bold text-gray-900">
                 热门Ai应用 & 推荐 & Demo
               </h1>
-              <div className="flex space-x-4">
-                
-              </div>
             </div>
             <div className="flex space-x-4">
               <AppSearch />
               <select
                 value={category}
-                onChange={(e) => dispatch({ 
-                  type: 'SET_CATEGORY', 
-                  payload: e.target.value 
+                onChange={(e) => dispatch({
+                  type: 'SET_CATEGORY',
+                  payload: e.target.value
                 })}
                 className="rounded-md border-gray-300"
               >
@@ -55,7 +51,7 @@ export const HomePage = React.memo(function HomePage() {
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         <AppStats />
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {paginatedApps.map((app) => (
             <AppCard
@@ -72,7 +68,6 @@ export const HomePage = React.memo(function HomePage() {
         {selectedApp && (
           <AppViewer
             app={selectedApp}
-            viewMode={viewMode}
             onClose={() => setSelectedApp(null)}
           />
         )}

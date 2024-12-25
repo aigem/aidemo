@@ -5,7 +5,7 @@ import type { GradioApp } from '../types/app';
 import { AppCard } from '../components/AppCard';
 import { AppForm } from '../components/AppForm';
 import { BatchAppForm } from '../components/BatchAppForm';
-import { addApps, deleteApp, updateApp } from '../services/appService';
+import { addApps, deleteApp, updateApp, getApps } from '../services/appService';
 import { logout } from '../services/authService';
 import { useApps } from '../contexts/AppContext';
 
@@ -43,21 +43,16 @@ export function AdminPage() {
     }
   }, [dispatch]);
 
-  const handleDeleteApp = useCallback(async (directUrl: string) => {
-    if (!window.confirm('确定要删除这个应用吗？此操作无法撤销。')) {
-      return;
+  const handleDeleteApp = async (app: GradioApp) => {
+    if (window.confirm(`确定要删除应用 "${app.name}" 吗？`)) {
+      try {
+        await deleteApp(app.directUrl);
+        dispatch({ type: 'SET_APPS', payload: await getApps() });
+      } catch (error) {
+        console.error('删除应用失败:', error);
+      }
     }
-
-    try {
-      const updatedApps = await deleteApp(directUrl);
-      dispatch({ type: 'SET_APPS', payload: updatedApps });
-      dispatch({ type: 'SET_ERROR', payload: '应用删除成功' });
-      setTimeout(() => dispatch({ type: 'SET_ERROR', payload: null }), 3000);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '删除应用失败，请稍后重试';
-      dispatch({ type: 'SET_ERROR', payload: errorMessage });
-    }
-  }, [dispatch]);
+  };
 
   const handleLogout = useCallback(() => {
     if (!window.confirm('确定要退出登录吗？')) {

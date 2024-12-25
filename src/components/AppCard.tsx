@@ -6,19 +6,13 @@ import { getAppPath } from '../utils/url';
 
 interface AppCardProps {
   app: GradioApp;
-  onPreview?: (app: GradioApp) => void;
-  onEdit?: (app: GradioApp) => void;
-  onDelete?: (directUrl: string) => void;
   viewOnly?: boolean;
+  onSelect?: (app: GradioApp) => void;
+  onEdit?: (app: GradioApp) => void;
+  onDelete?: (app: GradioApp) => void;
 }
 
-export function AppCard({
-  app,
-  onPreview,
-  onEdit,
-  onDelete,
-  viewOnly = false
-}: AppCardProps) {
+export function AppCard({ app, viewOnly = false, onSelect, onEdit, onDelete }: AppCardProps) {
   // 生成应用 URL
   const appUrl = getAppPath(app.directUrl);
 
@@ -43,16 +37,16 @@ export function AppCard({
           )}
           {!viewOnly && onDelete && (
             <button
-              onClick={() => onDelete(app.directUrl)}
+              onClick={() => onDelete(app)}
               className="p-1.5 hover:bg-gray-100 rounded-full"
               title="删除应用"
             >
               <Trash2 className="w-4 h-4 text-red-500" />
             </button>
           )}
-          {onPreview && (
+          {onSelect && (
             <button
-              onClick={() => onPreview(app)}
+              onClick={() => onSelect(app)}
               className="p-1.5 hover:bg-gray-100 rounded-full"
               title="预览应用"
             >
