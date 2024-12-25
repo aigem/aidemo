@@ -1,89 +1,51 @@
-import { ApiResponse, ApiError } from './types';
+import type { ApiResponse } from './types';
+
+const API_BASE_URL = '/api';
 
 class ApiClient {
   private baseUrl: string;
 
-  constructor(baseUrl: string = '/api') {
+  constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
   }
 
-  private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
-    if (!response.ok) {
-      const error: ApiError = await response.json();
-      return {
-        error: error.message,
-        status: response.status
-      };
-    }
+  private async request<T>(path: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+    const url = `${this.baseUrl}${path}`;
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
 
     const data = await response.json();
-    return {
-      data,
-      status: response.status
-    };
+    return data as ApiResponse<T>;
   }
 
-  async get<T>(endpoint: string): Promise<ApiResponse<T>> {
-    try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`);
-      return this.handleResponse<T>(response);
-    } catch (error) {
-      return {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        status: 500
-      };
-    }
+  async get<T>(path: string): Promise<ApiResponse<T>> {
+    return this.request<T>(path);
   }
 
-  async post<T>(endpoint: string, data: unknown): Promise<ApiResponse<T>> {
-    try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-      return this.handleResponse<T>(response);
-    } catch (error) {
-      return {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        status: 500
-      };
-    }
+  async post<T>(path: string, body: any): Promise<ApiResponse<T>> {
+    return this.request<T>(path, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
   }
 
-  async put<T>(endpoint: string, data: unknown): Promise<ApiResponse<T>> {
-    try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-      return this.handleResponse<T>(response);
-    } catch (error) {
-      return {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        status: 500
-      };
-    }
+  async put<T>(path: string, body: any): Promise<ApiResponse<T>> {
+    return this.request<T>(path, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
   }
 
-  async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
-    try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
-        method: 'DELETE',
-      });
-      return this.handleResponse<T>(response);
-    } catch (error) {
-      return {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        status: 500
-      };
-    }
+  async delete<T>(path: string): Promise<ApiResponse<T>> {
+    return this.request<T>(path, {
+      method: 'DELETE',
+    });
   }
 }
 
-export const apiClient = new ApiClient();
+export const apiClient = new ApiClient(API_BASE_URL);
