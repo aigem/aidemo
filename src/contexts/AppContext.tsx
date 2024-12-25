@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import type { GradioApp } from '../types/app';
 import { CATEGORIES } from '../types/app';
-import { loadApps, saveApps } from '../utils/storage';
+import * as appService from '../services/appService';
 
 interface AppState {
   apps: GradioApp[];
@@ -99,7 +99,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const loadInitialData = async () => {
       dispatch({ type: 'SET_LOADING', payload: true });
       try {
-        const apps = loadApps();
+        const apps = await appService.getApps();
         const appsWithCategory = apps.map(app => ({
           ...app,
           category: app.category || '其他'
@@ -120,18 +120,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     loadInitialData();
   }, []);
-
-  // 数据变更时保存
-  useEffect(() => {
-    if (!state.loading && !state.error && state.apps.length > 0) {
-      try {
-        saveApps(state.apps);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : '保存应用失败';
-        dispatch({ type: 'SET_ERROR', payload: message });
-      }
-    }
-  }, [state.apps, state.loading, state.error]);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>
