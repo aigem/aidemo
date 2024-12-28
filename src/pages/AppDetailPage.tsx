@@ -60,19 +60,11 @@ export function AppDetailPage() {
                         <div>
                             <h1 className="text-xl font-semibold text-gray-900">{app.name}</h1>
                             <p className="text-sm text-gray-500 mt-1">
-                                {app.directUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                                {app.description}
                             </p>
                         </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <a
-                            href={app.directUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-blue-600 hover:text-blue-800"
-                        >
-                            访问原始网址
-                        </a>
                         <button
                             onClick={() => setIsFullscreen(!isFullscreen)}
                             className="p-2 hover:bg-gray-100 rounded-full"
