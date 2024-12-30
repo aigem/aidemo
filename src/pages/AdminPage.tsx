@@ -18,6 +18,7 @@ export function AdminPage() {
 
   const handleAddApps = useCallback(async (newApps: GradioApp[]) => {
     try {
+      dispatch({ type: 'SET_LOADING', payload: true });
       const updatedApps = await addApps(newApps);
       dispatch({ type: 'SET_APPS', payload: updatedApps });
       setIsBatchAdding(false);
@@ -25,21 +26,28 @@ export function AdminPage() {
       dispatch({ type: 'SET_ERROR', payload: '应用添加成功' });
       setTimeout(() => dispatch({ type: 'SET_ERROR', payload: null }), 3000);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '添加应用失败，请稍后重试';
+      console.error('添加应用失败:', err);
+      const errorMessage = err instanceof Error ? err.message : '添加应用失败，请检查应用地址是否正确';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, [dispatch]);
 
   const handleUpdateApp = useCallback(async (updatedApp: GradioApp) => {
     try {
+      dispatch({ type: 'SET_LOADING', payload: true });
       const updatedApps = await updateApp(updatedApp);
       dispatch({ type: 'SET_APPS', payload: updatedApps });
       setEditingApp(null);
       dispatch({ type: 'SET_ERROR', payload: '应用更新成功' });
       setTimeout(() => dispatch({ type: 'SET_ERROR', payload: null }), 3000);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '更新应用失败，请稍后重试';
+      console.error('更新应用失败:', err);
+      const errorMessage = err instanceof Error ? err.message : '更新应用失败，请检查应用是否存在';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, [dispatch]);
 

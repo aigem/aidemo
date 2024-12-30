@@ -45,9 +45,10 @@ export function AppForm({ onSubmit, onClose, initialData }: AppFormProps) {
             <input
               type="url"
               required
+              disabled={!!initialData}
               value={formData.directUrl}
               onChange={e => setFormData({ ...formData, directUrl: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
               placeholder="https://example.com"
             />
           </div>
