@@ -1,118 +1,192 @@
-import { GradioApp } from '../types/app';
-import * as api from '../api/apps';
+import { apiClient } from '../utils/apiClient';
+import { storageSync } from '../utils/storageSync';
+import { featureManager } from '../config/features';
 
-// 缓存配置
-const CACHE_TTL = 5 * 60 * 1000; // 缓存有效期：5分钟
-let appsCache: GradioApp[] | null = null;
-let lastFetchTime = 0;
-
-// 检查缓存是否有效
-function isCacheValid(): boolean {
-  return !!(appsCache && (Date.now() - lastFetchTime < CACHE_TTL));
+// 应用接口
+export interface App {
+  id: string;
+  name: string;
+  directUrl: string;
+  category: string;
+  description?: string;
+  author?: {
+    name: string;
+    email?: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-// 更新缓存
-function updateCache(apps: GradioApp[]): void {
-  appsCache = apps;
-  lastFetchTime = Date.now();
+// 分页结果接口
+export interface PaginatedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
-// 清除缓存
-function clearCache(): void {
-  appsCache = null;
-  lastFetchTime = 0;
-}
+// 存储键类型
+type StorageKey = `apps:list:${number}:${number}` | `app:${string}`;
 
-// 获取所有应用
-export async function getApps(): Promise<GradioApp[]> {
-  try {
-    // 如果缓存有效，直接返回缓存数据
-    if (isCacheValid()) {
-      console.log('使用缓存的应用数据');
-      return appsCache!;
+// 应用服务类
+class AppService {
+  private static instance: AppService;
+
+  private constructor() { }
+
+  static getInstance(): AppService {
+    if (!AppService.instance) {
+      AppService.instance = new AppService();
     }
+    return AppService.instance;
+  }
 
-    console.log('从 API 获取最新应用数据');
-    const apps = await api.fetchApps();
-    updateCache(apps);
-    return apps;
-  } catch (error) {
-    console.error('获取应用失败:', error);
-    // 如果 API 请求失败但有缓存，返回缓存数据
-    if (appsCache) {
-      console.warn('API 请求失败，使用缓存数据');
-      return appsCache;
+  // 获取应用列表
+  async getApps(page = 1, pageSize = 10): Promise<PaginatedResult<App>> {
+    try {
+      // 检查是否启用了离线模式
+      if (featureManager.isEnabled('enableOfflineMode')) {
+        const key: StorageKey = `apps:list:${page}:${pageSize}`;
+        const cachedData = await storageSync.get(key);
+        if (cachedData) {
+          return cachedData as PaginatedResult<App>;
+        }
+      }
+
+      const response = await apiClient.get<PaginatedResult<App>>('/apps', {
+        params: { page, pageSize }
+      });
+
+      // 如果启用了离线模式,缓存数据
+      if (featureManager.isEnabled('enableOfflineMode')) {
+        const key: StorageKey = `apps:list:${page}:${pageSize}`;
+        await storageSync.set(key, response);
+      }
+
+      return response;
+    } catch (error) {
+      console.error('获取应用列表失败:', error);
+      throw error;
     }
-    throw error;
+  }
+
+  // 搜索应用
+  async searchApps(query: string, page = 1, pageSize = 10): Promise<PaginatedResult<App>> {
+    try {
+      const response = await apiClient.get<PaginatedResult<App>>('/apps/search', {
+        params: { query, page, pageSize }
+      });
+      return response;
+    } catch (error) {
+      console.error('搜索应用失败:', error);
+      throw error;
+    }
+  }
+
+  // 添加应用
+  async addApp(app: Omit<App, 'id' | 'createdAt' | 'updatedAt'>): Promise<App> {
+    try {
+      const response = await apiClient.post<App>('/apps', app);
+
+      // 如果启用了离线模式,缓存数据
+      if (featureManager.isEnabled('enableOfflineMode')) {
+        const key: StorageKey = `app:${response.id}`;
+        await storageSync.set(key, response);
+      }
+
+      return response;
+    } catch (error) {
+      console.error('添加应用失败:', error);
+      throw error;
+    }
+  }
+
+  // 更新应用
+  async updateApp(id: string, app: Partial<Omit<App, 'id' | 'createdAt' | 'updatedAt'>>): Promise<App> {
+    try {
+      const response = await apiClient.put<App>(`/apps/${id}`, app);
+
+      // 如果启用了离线模式,更新缓存
+      if (featureManager.isEnabled('enableOfflineMode')) {
+        const key: StorageKey = `app:${id}`;
+        await storageSync.set(key, response);
+      }
+
+      return response;
+    } catch (error) {
+      console.error('更新应用失败:', error);
+      throw error;
+    }
+  }
+
+  // 删除应用
+  async deleteApp(id: string): Promise<void> {
+    try {
+      await apiClient.delete(`/apps/${id}`);
+
+      // 如果启用了离线模式,删除缓存
+      if (featureManager.isEnabled('enableOfflineMode')) {
+        const key: StorageKey = `app:${id}`;
+        await storageSync.remove(key);
+      }
+    } catch (error) {
+      console.error('删除应用失败:', error);
+      throw error;
+    }
+  }
+
+  // 获取应用详情
+  async getAppById(id: string): Promise<App | null> {
+    try {
+      // 检查是否启用了离线模式
+      if (featureManager.isEnabled('enableOfflineMode')) {
+        const key: StorageKey = `app:${id}`;
+        const cachedData = await storageSync.get(key);
+        if (cachedData) {
+          return cachedData as App;
+        }
+      }
+
+      const response = await apiClient.get<App>(`/apps/${id}`);
+
+      // 如果启用了离线模式,缓存数据
+      if (featureManager.isEnabled('enableOfflineMode')) {
+        const key: StorageKey = `app:${id}`;
+        await storageSync.set(key, response);
+      }
+
+      return response;
+    } catch (error) {
+      console.error('获取应用详情失败:', error);
+      return null;
+    }
+  }
+
+  // 获取应用统计信息
+  async getAppStats(): Promise<{
+    total: number;
+    categories: Record<string, number>;
+  }> {
+    try {
+      const response = await apiClient.get('/apps/stats');
+      return response;
+    } catch (error) {
+      console.error('获取应用统计信息失败:', error);
+      throw error;
+    }
+  }
+
+  async importApps(apps: Omit<App, 'id'>[]): Promise<App[]> {
+    const response = await apiClient.post<App[]>('/apps/import', { apps });
+    return response;
+  }
+
+  async exportApps(): Promise<App[]> {
+    const response = await apiClient.get<App[]>('/apps/export');
+    return response;
   }
 }
 
-// 添加新应用
-export async function addApp(app: GradioApp): Promise<GradioApp[]> {
-  try {
-    await api.addApp(app);
-    clearCache(); // 清除缓存，强制下次获取最新数据
-    return await getApps();
-  } catch (error) {
-    console.error('添加应用失败:', error);
-    throw error;
-  }
-}
-
-// 批量添加应用
-export async function addApps(newApps: GradioApp[]): Promise<GradioApp[]> {
-  try {
-    await api.addApps(newApps);
-    clearCache();
-    return await getApps();
-  } catch (error) {
-    console.error('批量添加应用失败:', error);
-    throw error;
-  }
-}
-
-// 更新应用
-export async function updateApp(app: GradioApp): Promise<GradioApp[]> {
-  try {
-    await api.updateApp(app);
-    clearCache();
-    return await getApps();
-  } catch (error) {
-    console.error('更新应用失败:', error);
-    throw error;
-  }
-}
-
-// 删除应用
-export async function deleteApp(directUrl: string): Promise<GradioApp[]> {
-  try {
-    await api.deleteApp(directUrl);
-    clearCache();
-    return await getApps();
-  } catch (error) {
-    console.error('删除应用失败:', error);
-    throw error;
-  }
-}
-
-// 导入应用
-export async function importApps(apps: GradioApp[]): Promise<GradioApp[]> {
-  try {
-    await api.importApps(apps);
-    clearCache();
-    return await getApps();
-  } catch (error) {
-    console.error('导入应用失败:', error);
-    throw error;
-  }
-}
-
-// 导出应用
-export async function exportApps(): Promise<GradioApp[]> {
-  try {
-    return await api.exportApps();
-  } catch (error) {
-    console.error('导出应用失败:', error);
-    throw error;
-  }
-}
+// 导出应用服务实例
+export const appService = AppService.getInstance();

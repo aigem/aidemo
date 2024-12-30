@@ -1,100 +1,58 @@
-import { useEffect } from 'react';
-import type { GradioApp } from '../types/app';
+import React from 'react';
+import { Helmet } from 'react-helmet-async';
+import type { App } from '../services/appService';
 
 interface SEOProps {
     title?: string;
     description?: string;
     keywords?: string;
-    type?: 'website' | 'article';
-    image?: string;
+    type?: string;
     url?: string;
-    app?: GradioApp;
+    image?: string;
+    app?: App;
 }
 
 export function SEO({
-    title = '独门 AI DEMO - AI 应用管理平台',
-    description = '独门 AI DEMO 是一个专业的 AI 应用管理平台，提供文本生成、图像生成、音频处理和计算机视觉等多种 AI 应用服务。',
-    keywords = 'AI应用,人工智能,文本生成,图像生成,音频处理,计算机视觉,AI管理平台',
+    title = '独门 AI DEMO - 发现和体验最新的 AI 应用',
+    description = '独门 AI DEMO 是一个展示和体验最新 AI 应用的平台。在这里，您可以探索各种创新的 AI 应用，体验人工智能的最新发展。',
+    keywords = 'AI,人工智能,Demo,应用,体验',
     type = 'website',
-    image = 'https://demo.duu.men/og-image.jpg',
-    url = 'https://demo.duu.men/',
+    url = 'https://demo.duu.men',
+    image = '/logo.png',
     app
 }: SEOProps) {
-    useEffect(() => {
-        // 更新标题
-        document.title = title;
+    // 如果提供了应用信息，使用应用相关的 SEO 数据
+    if (app) {
+        title = `${app.name} - 独门 AI DEMO`;
+        description = app.description || description;
+        keywords = `${app.category},${keywords}`;
+        url = `${url}/app/${encodeURIComponent(app.directUrl)}`;
+    }
 
-        // 更新 meta 标签
-        const metaTags = {
-            description,
-            keywords,
-            'og:title': title,
-            'og:description': description,
-            'og:type': type,
-            'og:url': url,
-            'og:image': image,
-            'twitter:card': 'summary_large_image',
-            'twitter:title': title,
-            'twitter:description': description,
-            'twitter:image': image
-        };
+    return (
+        <Helmet>
+            {/* 基本元标签 */}
+            <title>{title}</title>
+            <meta name="description" content={description} />
+            <meta name="keywords" content={keywords} />
 
-        // 如果是应用详情页，添加额外的结构化数据
-        if (app) {
-            const structuredData = {
-                '@context': 'https://schema.org',
-                '@type': 'SoftwareApplication',
-                name: app.name,
-                description: app.description,
-                applicationCategory: app.category,
-                url: app.directUrl,
-                ...(app.imageUrl && { image: app.imageUrl }),
-                ...(app.author && {
-                    author: {
-                        '@type': 'Organization',
-                        name: app.author.name
-                    }
-                })
-            };
+            {/* Open Graph 标签 */}
+            <meta property="og:title" content={title} />
+            <meta property="og:description" content={description} />
+            <meta property="og:type" content={type} />
+            <meta property="og:url" content={url} />
+            {image && <meta property="og:image" content={image} />}
 
-            // 添加结构化数据脚本
-            const script = document.createElement('script');
-            script.type = 'application/ld+json';
-            script.text = JSON.stringify(structuredData);
-            document.head.appendChild(script);
+            {/* Twitter 卡片标签 */}
+            <meta name="twitter:card" content="summary_large_image" />
+            <meta name="twitter:title" content={title} />
+            <meta name="twitter:description" content={description} />
+            {image && <meta name="twitter:image" content={image} />}
 
-            return () => {
-                document.head.removeChild(script);
-            };
-        }
-
-        // 更新所有 meta 标签
-        Object.entries(metaTags).forEach(([name, content]) => {
-            let meta = document.querySelector(`meta[name="${name}"]`) ||
-                document.querySelector(`meta[property="${name}"]`);
-
-            if (!meta) {
-                meta = document.createElement('meta');
-                if (name.startsWith('og:')) {
-                    meta.setAttribute('property', name);
-                } else {
-                    meta.setAttribute('name', name);
-                }
-                document.head.appendChild(meta);
-            }
-
-            meta.setAttribute('content', content);
-        });
-
-        // 更新 canonical URL
-        let canonical = document.querySelector('link[rel="canonical"]');
-        if (!canonical) {
-            canonical = document.createElement('link');
-            canonical.rel = 'canonical';
-            document.head.appendChild(canonical);
-        }
-        canonical.href = url;
-    }, [title, description, keywords, type, image, url, app]);
-
-    return null;
+            {/* 其他元标签 */}
+            <meta name="robots" content="index,follow" />
+            <meta name="googlebot" content="index,follow" />
+            <link rel="canonical" href={url} />
+        </Helmet>
+    );
 } 

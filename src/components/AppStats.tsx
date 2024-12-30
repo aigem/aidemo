@@ -1,47 +1,73 @@
-import React from 'react';
-import { BarChart2, Layout, Tag } from 'lucide-react';
-import { useApps } from '../contexts/AppContext';
+import React, { useEffect, useState } from 'react';
+import { appService } from '../services/appService';
+import { errorHandler } from '../utils/errorHandler';
+import { LoadingSpinner } from './LoadingSpinner';
+
+interface AppStatsData {
+  total: number;
+  categories: Record<string, number>;
+}
 
 export function AppStats() {
-  const { state } = useApps();
-  const { apps } = state;
+  const [stats, setStats] = useState<AppStatsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const stats = {
-    total: apps.length,
-    categories: Object.entries(
-      apps.reduce((acc, app) => {
-        acc[app.category] = (acc[app.category] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>)
-    )
-  };
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const data = await appService.getAppStats();
+        setStats(data);
+      } catch (error) {
+        const errorMessage = errorHandler.getErrorMessage(error);
+        setError(errorMessage);
+        console.error('加载统计信息失败:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadStats();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-4">
+        <LoadingSpinner size="small" message="加载统计信息..." />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <p className="text-red-700">{error}</p>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return null;
+  }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-      <div className="bg-white p-4 rounded-lg shadow-sm">
-        <div className="flex items-center space-x-2">
-          <Layout className="w-5 h-5 text-blue-500" />
-          <h3 className="text-gray-600">Total Apps</h3>
+    <div className="bg-white rounded-lg shadow-sm p-6">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">应用统计</h2>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="bg-blue-50 rounded-lg p-4">
+          <p className="text-sm text-blue-600 font-medium">总应用数</p>
+          <p className="text-2xl font-bold text-blue-900 mt-1">
+            {stats.total}
+          </p>
         </div>
-        <p className="text-2xl font-semibold mt-2">{stats.total}</p>
-      </div>
-      
-      <div className="bg-white p-4 rounded-lg shadow-sm">
-        <div className="flex items-center space-x-2">
-          <Tag className="w-5 h-5 text-green-500" />
-          <h3 className="text-gray-600">Categories</h3>
-        </div>
-        <p className="text-2xl font-semibold mt-2">{stats.categories.length}</p>
-      </div>
-      
-      <div className="bg-white p-4 rounded-lg shadow-sm">
-        <div className="flex items-center space-x-2">
-          <BarChart2 className="w-5 h-5 text-purple-500" />
-          <h3 className="text-gray-600">Most Popular</h3>
-        </div>
-        <p className="text-2xl font-semibold mt-2">
-          {stats.categories.sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A'}
-        </p>
+        {Object.entries(stats.categories).map(([category, count]) => (
+          <div key={category} className="bg-gray-50 rounded-lg p-4">
+            <p className="text-sm text-gray-600 font-medium">{category}</p>
+            <p className="text-2xl font-bold text-gray-900 mt-1">
+              {count}
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   );

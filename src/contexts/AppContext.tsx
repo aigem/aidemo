@@ -1,124 +1,81 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import type { GradioApp } from '../types/app';
-import { CATEGORIES } from '../types/app';
-import * as appService from '../services/appService';
+import type { App } from '../services/appService';
+import { appService } from '../services/appService';
+import { errorHandler } from '../utils/errorHandler';
 
+// 状态接口
 interface AppState {
-  apps: GradioApp[];
+  apps: App[];
   loading: boolean;
   error: string | null;
-  searchQuery: string;
-  category: string;
-  page: number;
-  itemsPerPage: number;
 }
 
+// Action 类型
 type AppAction =
-  | { type: 'SET_APPS'; payload: GradioApp[] }
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'SET_SEARCH'; payload: string }
-  | { type: 'SET_CATEGORY'; payload: string }
-  | { type: 'SET_PAGE'; payload: number };
+  | { type: 'LOAD_APPS_START' }
+  | { type: 'LOAD_APPS_SUCCESS'; payload: App[] }
+  | { type: 'LOAD_APPS_ERROR'; payload: string }
+  | { type: 'ADD_APP'; payload: App }
+  | { type: 'UPDATE_APP'; payload: App }
+  | { type: 'DELETE_APP'; payload: string };
 
+// 初始状态
 const initialState: AppState = {
   apps: [],
   loading: false,
-  error: null,
-  searchQuery: '',
-  category: 'all',
-  page: 1,
-  itemsPerPage: 9
+  error: null
 };
 
+// 创建上下文
 const AppContext = createContext<{
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
-}>({ state: initialState, dispatch: () => null });
+} | null>(null);
 
-function validateApp(app: GradioApp): string | null {
-  if (!app.name?.trim()) {
-    return '应用名称不能为空';
-  }
-  if (!app.directUrl?.trim()) {
-    return '应用地址不能为空';
-  }
-  if (!app.category) {
-    app.category = '其他';
-  }
-  if (!CATEGORIES.includes(app.category)) {
-    return `无效的应用类别: ${app.category}。有效类别: ${CATEGORIES.join(', ')}`;
-  }
-  return null;
-}
-
-function validateApps(apps: GradioApp[]): string | null {
-  if (!Array.isArray(apps)) {
-    return '无效的应用数据格式';
-  }
-
-  for (const app of apps) {
-    const error = validateApp(app);
-    if (error) {
-      return error;
-    }
-  }
-
-  return null;
-}
-
+// Reducer 函数
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
-    case 'SET_APPS': {
-      const error = validateApps(action.payload);
-      if (error) {
-        return { ...state, error };
-      }
-      return { ...state, apps: action.payload, error: null };
-    }
-    case 'SET_LOADING':
-      return { ...state, loading: action.payload };
-    case 'SET_ERROR':
-      return { ...state, error: action.payload };
-    case 'SET_SEARCH':
-      return { ...state, searchQuery: action.payload, page: 1 };
-    case 'SET_CATEGORY':
-      return { ...state, category: action.payload, page: 1 };
-    case 'SET_PAGE':
-      return { ...state, page: action.payload };
+    case 'LOAD_APPS_START':
+      return { ...state, loading: true, error: null };
+    case 'LOAD_APPS_SUCCESS':
+      return { ...state, loading: false, apps: action.payload };
+    case 'LOAD_APPS_ERROR':
+      return { ...state, loading: false, error: action.payload };
+    case 'ADD_APP':
+      return { ...state, apps: [...state.apps, action.payload] };
+    case 'UPDATE_APP':
+      return {
+        ...state,
+        apps: state.apps.map(app =>
+          app.id === action.payload.id ? action.payload : app
+        )
+      };
+    case 'DELETE_APP':
+      return {
+        ...state,
+        apps: state.apps.filter(app => app.id !== action.payload)
+      };
     default:
       return state;
   }
 }
 
+// Provider 组件
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
-  // 初始加载数据
   useEffect(() => {
-    const loadInitialData = async () => {
-      dispatch({ type: 'SET_LOADING', payload: true });
+    async function loadApps() {
+      dispatch({ type: 'LOAD_APPS_START' });
       try {
-        const apps = await appService.getApps();
-        const appsWithCategory = apps.map(app => ({
-          ...app,
-          category: app.category || '其他'
-        }));
-        const error = validateApps(appsWithCategory);
-        if (error) {
-          dispatch({ type: 'SET_ERROR', payload: error });
-        } else {
-          dispatch({ type: 'SET_APPS', payload: appsWithCategory });
-        }
+        const response = await appService.getApps();
+        dispatch({ type: 'LOAD_APPS_SUCCESS', payload: response.items });
       } catch (error) {
-        const message = error instanceof Error ? error.message : '加载应用失败';
-        dispatch({ type: 'SET_ERROR', payload: message });
-      } finally {
-        dispatch({ type: 'SET_LOADING', payload: false });
+        const message = errorHandler.getErrorMessage(error, 'Loading apps');
+        dispatch({ type: 'LOAD_APPS_ERROR', payload: message });
       }
-    };
-
-    loadInitialData();
+    }
+    loadApps();
   }, []);
 
   return (
@@ -128,4 +85,44 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export const useApps = () => useContext(AppContext);
+// Hook
+export function useApps() {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error('useApps must be used within an AppProvider');
+  }
+
+  const { state, dispatch } = context;
+
+  return {
+    apps: state.apps,
+    loading: state.loading,
+    error: state.error,
+    addApp: async (app: App) => {
+      try {
+        const newApp = await appService.addApp(app);
+        dispatch({ type: 'ADD_APP', payload: newApp });
+        return newApp;
+      } catch (error) {
+        throw new Error(errorHandler.getErrorMessage(error, 'Adding app'));
+      }
+    },
+    updateApp: async (app: App) => {
+      try {
+        const updatedApp = await appService.updateApp(app);
+        dispatch({ type: 'UPDATE_APP', payload: updatedApp });
+        return updatedApp;
+      } catch (error) {
+        throw new Error(errorHandler.getErrorMessage(error, 'Updating app'));
+      }
+    },
+    deleteApp: async (appId: string) => {
+      try {
+        await appService.deleteApp(appId);
+        dispatch({ type: 'DELETE_APP', payload: appId });
+      } catch (error) {
+        throw new Error(errorHandler.getErrorMessage(error, 'Deleting app'));
+      }
+    }
+  };
+}
