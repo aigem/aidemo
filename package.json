@@ -16,6 +16,8 @@
     "antd": "^5.14.1",
     "axios": "^1.7.9",
     "edgeone": "^1.0.2",
+    "lodash": "^4.17.21",
+    "@types/lodash": "^4.14.202",
     "lucide-react": "^0.330.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
