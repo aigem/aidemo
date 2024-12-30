@@ -19,7 +19,7 @@ function createResponse(success: boolean, data?: any, error?: string) {
 export async function onRequestPost({ request }) {
     try {
         const newApps: GradioApp[] = await request.json();
-        const appsData: GradioApp[] = await my_kv.get(APPS_KEY, { type: 'json' }) || [];
+        const appsData: GradioApp[] = await eo_kv.get(APPS_KEY, { type: 'json' }) || [];
 
         // 过滤掉已存在的应用
         const uniqueApps = newApps.filter(
@@ -28,7 +28,7 @@ export async function onRequestPost({ request }) {
 
         // 添加新应用
         appsData.push(...uniqueApps);
-        await my_kv.put(APPS_KEY, JSON.stringify(appsData));
+        await eo_kv.put(APPS_KEY, JSON.stringify(appsData));
 
         return createResponse(true, uniqueApps);
     } catch (error) {

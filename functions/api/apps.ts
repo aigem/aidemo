@@ -18,7 +18,7 @@ function createResponse(success: boolean, data?: any, error?: string) {
 // 获取所有应用
 export async function onRequestGet() {
     try {
-        const appsData = await my_kv.get(APPS_KEY, { type: 'json' });
+        const appsData = await eo_kv.get(APPS_KEY, { type: 'json' });
         return createResponse(true, appsData || []);
     } catch (error) {
         console.error('获取应用列表失败:', error);
@@ -30,7 +30,7 @@ export async function onRequestGet() {
 export async function onRequestPost({ request }) {
     try {
         const app: GradioApp = await request.json();
-        const appsData: GradioApp[] = await my_kv.get(APPS_KEY, { type: 'json' }) || [];
+        const appsData: GradioApp[] = await eo_kv.get(APPS_KEY, { type: 'json' }) || [];
 
         // 检查是否已存在
         if (appsData.some(a => a.directUrl === app.directUrl)) {
@@ -39,7 +39,7 @@ export async function onRequestPost({ request }) {
 
         // 添加新应用
         appsData.push(app);
-        await my_kv.put(APPS_KEY, JSON.stringify(appsData));
+        await eo_kv.put(APPS_KEY, JSON.stringify(appsData));
 
         return createResponse(true, app);
     } catch (error) {
@@ -55,7 +55,7 @@ export async function onRequestPut({ request, params }) {
         const directUrl = decodeURIComponent(params.url);
 
         // 获取当前应用列表
-        const appsData: GradioApp[] = await my_kv.get(APPS_KEY, { type: 'json' }) || [];
+        const appsData: GradioApp[] = await eo_kv.get(APPS_KEY, { type: 'json' }) || [];
 
         // 查找并更新应用
         const index = appsData.findIndex(a => a.directUrl === directUrl);
@@ -64,7 +64,7 @@ export async function onRequestPut({ request, params }) {
         }
 
         appsData[index] = app;
-        await my_kv.put(APPS_KEY, JSON.stringify(appsData));
+        await eo_kv.put(APPS_KEY, JSON.stringify(appsData));
 
         return createResponse(true, app);
     } catch (error) {
@@ -79,7 +79,7 @@ export async function onRequestDelete({ params }) {
         const directUrl = decodeURIComponent(params.url);
 
         // 获取当前应用列表
-        const appsData: GradioApp[] = await my_kv.get(APPS_KEY, { type: 'json' }) || [];
+        const appsData: GradioApp[] = await eo_kv.get(APPS_KEY, { type: 'json' }) || [];
 
         // 过滤掉要删除的应用
         const newApps = appsData.filter(a => a.directUrl !== directUrl);
@@ -90,7 +90,7 @@ export async function onRequestDelete({ params }) {
         }
 
         // 保存更新后的列表
-        await my_kv.put(APPS_KEY, JSON.stringify(newApps));
+        await eo_kv.put(APPS_KEY, JSON.stringify(newApps));
         return createResponse(true);
     } catch (error) {
         console.error('删除应用失败:', error);
@@ -103,7 +103,7 @@ export async function onRequestPost({ request }, { type = 'single' }) {
     try {
         if (type === 'batch') {
             const newApps: GradioApp[] = await request.json();
-            const appsData: GradioApp[] = await my_kv.get(APPS_KEY, { type: 'json' }) || [];
+            const appsData: GradioApp[] = await eo_kv.get(APPS_KEY, { type: 'json' }) || [];
 
             // 过滤掉已存在的应用
             const uniqueApps = newApps.filter(
@@ -112,20 +112,20 @@ export async function onRequestPost({ request }, { type = 'single' }) {
 
             // 添加新应用
             appsData.push(...uniqueApps);
-            await my_kv.put(APPS_KEY, JSON.stringify(appsData));
+            await eo_kv.put(APPS_KEY, JSON.stringify(appsData));
 
             return createResponse(true, uniqueApps);
         } else {
             // 单个应用添加的原有逻辑
             const app: GradioApp = await request.json();
-            const appsData: GradioApp[] = await my_kv.get(APPS_KEY, { type: 'json' }) || [];
+            const appsData: GradioApp[] = await eo_kv.get(APPS_KEY, { type: 'json' }) || [];
 
             if (appsData.some(a => a.directUrl === app.directUrl)) {
                 return createResponse(false, null, '应用已存在');
             }
 
             appsData.push(app);
-            await my_kv.put(APPS_KEY, JSON.stringify(appsData));
+            await eo_kv.put(APPS_KEY, JSON.stringify(appsData));
 
             return createResponse(true, app);
         }
@@ -139,7 +139,7 @@ export async function onRequestPost({ request }, { type = 'single' }) {
 export async function onRequestPost({ request }, { type = 'import' }) {
     try {
         const importedApps: GradioApp[] = await request.json();
-        const currentApps: GradioApp[] = await my_kv.get(APPS_KEY, { type: 'json' }) || [];
+        const currentApps: GradioApp[] = await eo_kv.get(APPS_KEY, { type: 'json' }) || [];
 
         // 过滤掉已存在的应用
         const newApps = importedApps.filter(
@@ -148,7 +148,7 @@ export async function onRequestPost({ request }, { type = 'import' }) {
 
         // 合并应用列表
         const updatedApps = [...currentApps, ...newApps];
-        await my_kv.put(APPS_KEY, JSON.stringify(updatedApps));
+        await eo_kv.put(APPS_KEY, JSON.stringify(updatedApps));
 
         return createResponse(true, newApps);
     } catch (error) {
@@ -161,7 +161,7 @@ export async function onRequestPost({ request }, { type = 'import' }) {
 export async function onRequestGet({ }, { type = 'export' }) {
     try {
         if (type === 'export') {
-            const appsData = await my_kv.get(APPS_KEY, { type: 'json' });
+            const appsData = await eo_kv.get(APPS_KEY, { type: 'json' });
             return createResponse(true, appsData || []);
         }
         // 普通获取应用列表的逻辑

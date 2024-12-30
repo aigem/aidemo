@@ -23,7 +23,7 @@
         }
     ],
     "bindings": {
-        "my_kv": {
+        "eo_kv": {
             "type": "kv",
             "id": "your-kv-namespace-id"
         }

@@ -19,7 +19,7 @@ function createResponse(success: boolean, data?: any, error?: string) {
 export async function onRequestPost({ request }) {
     try {
         const importedApps: GradioApp[] = await request.json();
-        const currentApps: GradioApp[] = await my_kv.get(APPS_KEY, { type: 'json' }) || [];
+        const currentApps: GradioApp[] = await eo_kv.get(APPS_KEY, { type: 'json' }) || [];
 
         // 过滤掉已存在的应用
         const newApps = importedApps.filter(
@@ -28,7 +28,7 @@ export async function onRequestPost({ request }) {
 
         // 合并应用列表
         const updatedApps = [...currentApps, ...newApps];
-        await my_kv.put(APPS_KEY, JSON.stringify(updatedApps));
+        await eo_kv.put(APPS_KEY, JSON.stringify(updatedApps));
 
         return createResponse(true, newApps);
     } catch (error) {
@@ -40,7 +40,7 @@ export async function onRequestPost({ request }) {
 // 导出应用
 export async function onRequestGet() {
     try {
-        const appsData = await my_kv.get(APPS_KEY, { type: 'json' });
+        const appsData = await eo_kv.get(APPS_KEY, { type: 'json' });
         return createResponse(true, appsData || []);
     } catch (error) {
         console.error('导出应用失败:', error);
